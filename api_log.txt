@@ -1,0 +1,5 @@
+2025-11-27 06:33:07 - Action: posts - Request started
+2025-11-27 06:33:07 - Action: posts - Error: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COUNT(`cid`) as `total`  FROM typecho_contents' at line 1
+2025-11-27 06:33:19 - Action: posts - Request started
+2025-11-27 06:33:19 - Action: posts - Error: SQLSTATE[42000]: Syntax error or access violation: 1064 You have an error in your SQL syntax; check the manual that corresponds to your MySQL server version for the right syntax to use near 'COUNT(`cid`) as `total`  FROM typecho_contents' at line 1
+2025-11-27 06:34:12 - Action: posts - Request started
