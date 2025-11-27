@@ -261,7 +261,7 @@ function autoCompleteCommand() {
         } else if (matches.length > 1) {
             // 如果有多个匹配项，显示所有可能的命令
             terminalOutput.innerHTML += `<div class="suggestion-message">可能的命令: ${matches.join(', ')}</div>`;
-            scrollToBottom();
+            scrollToTop();
         }
     }
 }
@@ -367,6 +367,11 @@ function scrollToBottom() {
     terminalOutput.scrollTop = terminalOutput.scrollHeight;
 }
 
+function scrollToTop() {
+    const terminalOutput = document.getElementById('command-output');
+    terminalOutput.scrollTop = 0;
+}
+
 // 继续替换剩余的terminal-output引用
 
 // 命令处理函数
@@ -439,7 +444,7 @@ function handleLsCommand(args) {
                 commandOutput.innerHTML += `</div>`;
                 commandOutput.innerHTML += generatePagination(page, totalPages);
                 addPaginationEventListeners();
-                scrollToBottom();
+                scrollToTop();
             }
         })
         .catch(error => {
@@ -573,7 +578,7 @@ function handleCatCommand(args) {
                 </div>
             </div>
             `;
-            scrollToBottom();
+            scrollToTop();
         })
         .catch(error => {
             showErrorMessage(`获取文章内容时发生错误: ${error.message}`);
