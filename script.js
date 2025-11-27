@@ -227,9 +227,6 @@ function handleKeyDown(event) {
                     }
                     commandInput.value = commandHistory[historyIndex];
                 }
-            } else {
-                event.preventDefault();
-                scrollOutputBy(-Math.max(terminalOutput.clientHeight * 0.8, 200));
             }
             break;
         
@@ -245,9 +242,6 @@ function handleKeyDown(event) {
                         commandInput.value = currentCommand;
                     }
                 }
-            } else {
-                event.preventDefault();
-                scrollOutputBy(Math.max(terminalOutput.clientHeight * 0.8, 200));
             }
             break;
         
@@ -1161,8 +1155,8 @@ function handleHelpCommand() {
             <div class="navigation-tips">
                 <h2>导航技巧</h2>
                 <ul>
-                    <li>使用 <kbd>↑</kbd> <kbd>↓</kbd> 控制列表滚动；使用 <kbd>Ctrl</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> 浏览命令历史</li>
-                    <li>按 <kbd>Esc</kbd> 使命令行失焦，然后使用 <kbd>↑</kbd>/<kbd>↓</kbd> 滚动内容</li>
+                    <li>使用 <kbd>j</kbd> <kbd>k</kbd> 控制列表滚动；在输入框中使用 <kbd>↑</kbd>/<kbd>↓</kbd> 浏览命令历史</li>
+                    <li>按 <kbd>Esc</kbd> 使命令行失焦，然后使用 <kbd>j</kbd>/<kbd>k</kbd> 滚动内容</li>
                     <li>使用 <kbd>Tab</kbd> 键自动补全命令</li>
                     <li>点击文章标题可以直接查看文章内容</li>
                     <li>分页按钮可以浏览更多文章</li>
@@ -1208,14 +1202,14 @@ function setupGlobalShortcuts() {
             return;
         }
 
-        if (String(event.key) === 'ArrowUp') {
+        if (String(event.key).toLowerCase() === 'k') {
             if (output) {
                 scrollOutputBy(-Math.max(output.clientHeight * 0.8, 200));
                 event.preventDefault();
             }
             return;
         }
-        if (String(event.key) === 'ArrowDown') {
+        if (String(event.key).toLowerCase() === 'j') {
             if (output) {
                 scrollOutputBy(Math.max(output.clientHeight * 0.8, 200));
                 event.preventDefault();
