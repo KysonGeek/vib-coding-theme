@@ -655,10 +655,6 @@ function handleSearchCommand(args) {
                             <div class="post-meta">发布时间: ${post.date} | 分类: ${post.category || ''} | 评论数: ${post.comments ?? 0}</div>
                             <div class="post-excerpt">${post.excerpt || ''}</div>
                         </div>
-                        <div class="post-stats">
-                            <span class="post-views">👁 ${post.views ?? 0}</span>
-                            <span class="post-likes">👍 ${post.likes ?? 0}</span>
-                        </div>
                     </div>
                     `;
                 });
@@ -822,10 +818,6 @@ function handleCategoryOpen(mid, name, page = 1) {
                             <div class=\"post-title\" onclick=\"handleCatCommand(['${index + 1}'])\">[${index + 1}] ${post.title}</div>
                             <div class=\"post-meta\">发布时间: ${post.date} | 分类: ${post.category || ''} | 评论数: ${post.comments ?? 0}</div>
                             <div class=\"post-excerpt\">${post.excerpt || ''}</div>
-                        </div>
-                        <div class=\"post-stats\">
-                            <span class=\"post-views\">👁 ${post.views ?? 0}</span>
-                            <span class=\"post-likes\">👍 ${post.likes ?? 0}</span>
                         </div>
                     </div>
                     `;
