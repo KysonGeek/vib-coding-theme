@@ -8,6 +8,7 @@ let pageSize = 10;
 let currentPage = 1;
 let totalPosts = 0;
 let currentListPosts = [];
+let currentSearchQuery = '';
 
 // 命令映射表
 const commands = {
@@ -16,7 +17,12 @@ const commands = {
     'about': handleAboutCommand,
     'home': handleHomeCommand,
     'tree': handleTreeCommand,
-    'help': handleHelpCommand
+    'help': handleHelpCommand,
+    'search': handleSearchCommand,
+    'tags': handleTagsCommand,
+    'categories': handleCategoriesCommand,
+    'archives': handleArchivesCommand,
+    'stats': handleStatsCommand
 };
 
 // 自动补全命令列表
@@ -514,6 +520,19 @@ function addPaginationEventListeners() {
     });
 }
 
+function addSearchPaginationEventListeners(query) {
+    const paginationLinks = document.querySelectorAll('.pagination a');
+    paginationLinks.forEach(link => {
+        link.addEventListener('click', function(event) {
+            event.preventDefault();
+            const page = parseInt(this.getAttribute('data-page'));
+            if (!isNaN(page)) {
+                handleSearchCommand([query, page.toString()]);
+            }
+        });
+    });
+}
+
 // cat命令 - 显示文章内容
 function handleCatCommand(args) {
     if (args.length === 0) {
@@ -561,17 +580,17 @@ function handleCatCommand(args) {
                     <div class="article-meta">
                         <span class="article-date">📅 ${post.date}</span>
                         <span class="article-category">🏷 ${post.category || ''}</span>
-                        <span class="article-views">👁 ${post.views ?? 0}</span>
+                        // <span class="article-views">👁 ${post.views ?? 0}</span>
                     </div>
                 </div>
                 <div class="article-content">
                     ${post.content || ''}
                 </div>
                 <div class="article-footer">
-                    <div class="article-stats">
-                        <span class="article-comments">💬 ${post.comments ?? 0} 评论</span>
-                        <span class="article-likes">👍 ${post.likes ?? 0} 点赞</span>
-                    </div>
+                    // <div class="article-stats">
+                    //     <span class="article-comments">💬 ${post.comments ?? 0} 评论</span>
+                    //     <span class="article-likes">👍 ${post.likes ?? 0} 点赞</span>
+                    // </div>
                     <div class="article-actions">
                         <button class="back-button" onclick="handleLsCommand(['${currentPage}'])" title="返回列表">← 返回列表</button>
                     </div>
@@ -583,6 +602,341 @@ function handleCatCommand(args) {
         .catch(error => {
             showErrorMessage(`获取文章内容时发生错误: ${error.message}`);
             console.error('Error fetching post content:', error);
+        });
+}
+
+function handleSearchCommand(args) {
+    let page = 1;
+    let q = '';
+    if (args.length === 0) {
+        showErrorMessage('请提供搜索关键词');
+        return;
+    }
+    const last = args[args.length - 1];
+    if (!isNaN(parseInt(last))) {
+        page = Math.max(1, parseInt(last));
+        q = args.slice(0, -1).join(' ').trim();
+    } else {
+        q = args.join(' ').trim();
+    }
+    if (!q) {
+        showErrorMessage('请提供搜索关键词');
+        return;
+    }
+    currentSearchQuery = q;
+    currentPage = page;
+    showLoading();
+    fetch(`/?vib_api=search&q=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`)
+        .then(resp => resp.json())
+        .then(json => {
+            const terminalOutput = document.getElementById('command-output');
+            const lastLoadingIndex = terminalOutput.innerHTML.lastIndexOf('<div class="loading"></div>');
+            if (lastLoadingIndex !== -1) {
+                terminalOutput.innerHTML = terminalOutput.innerHTML.substring(0, lastLoadingIndex);
+            }
+            const introduction = document.getElementById('introduction');
+            const commandOutput = document.getElementById('command-output');
+            if (introduction) introduction.classList.add('hidden');
+            if (commandOutput) commandOutput.classList.remove('hidden');
+            if (json.code !== 0) {
+                showErrorMessage(`搜索失败: ${json.message || '未知错误'}`);
+                return;
+            }
+            const data = json.data || {};
+            const posts = data.posts || [];
+            currentListPosts = posts;
+            totalPosts = data.total || 0;
+            const totalPages = data.totalPages || 0;
+            if (page > totalPages && totalPages > 0) {
+                showErrorMessage(`页码越界。总页数: ${totalPages}`);
+                return;
+            }
+            if (commandOutput) {
+                commandOutput.innerHTML = `<div class="list-header">搜索结果: ${q} (第 ${page}/${totalPages} 页)</div><div class="post-list">`;
+                posts.forEach((post, index) => {
+                    commandOutput.innerHTML += `
+                    <div class="post-item" data-id="${post.id}">
+                        <div class="post-id">[${post.id}]</div>
+                        <div class="post-info">
+                            <div class="post-title" onclick="handleCatCommand(['${index + 1}'])">[${index + 1}] ${post.title}</div>
+                            <div class="post-meta">发布时间: ${post.date} | 分类: ${post.category || ''} | 评论数: ${post.comments ?? 0}</div>
+                            <div class="post-excerpt">${post.excerpt || ''}</div>
+                        </div>
+                        <div class="post-stats">
+                            <span class="post-views">👁 ${post.views ?? 0}</span>
+                            <span class="post-likes">👍 ${post.likes ?? 0}</span>
+                        </div>
+                    </div>
+                    `;
+                });
+                commandOutput.innerHTML += `</div>`;
+                commandOutput.innerHTML += generatePagination(page, totalPages);
+                addSearchPaginationEventListeners(q);
+                scrollToTop();
+            }
+        })
+        .catch(error => {
+            showErrorMessage(`搜索时发生错误: ${error.message}`);
+            console.error('Error searching posts:', error);
+        });
+}
+
+function handleTagsCommand(args) {
+    let page = 1;
+    if (args.length > 0) {
+        const p = parseInt(args[0]);
+        if (!isNaN(p) && p > 0) page = p;
+    }
+    currentPage = page;
+    showLoading();
+    fetch(`/?vib_api=tags&page=${page}&pageSize=${pageSize}`)
+        .then(resp => resp.json())
+        .then(json => {
+            const terminalOutput = document.getElementById('command-output');
+            const lastLoadingIndex = terminalOutput.innerHTML.lastIndexOf('<div class="loading"></div>');
+            if (lastLoadingIndex !== -1) {
+                terminalOutput.innerHTML = terminalOutput.innerHTML.substring(0, lastLoadingIndex);
+            }
+            const introduction = document.getElementById('introduction');
+            const commandOutput = document.getElementById('command-output');
+            if (introduction) introduction.classList.add('hidden');
+            if (commandOutput) commandOutput.classList.remove('hidden');
+            if (json.code !== 0) {
+                showErrorMessage(`获取标签失败: ${json.message || '未知错误'}`);
+                return;
+            }
+            const data = json.data || {};
+            const tags = data.tags || [];
+            const totalPages = data.totalPages || 0;
+            if (page > totalPages && totalPages > 0) {
+                showErrorMessage(`页码越界。总页数: ${totalPages}`);
+                return;
+            }
+            if (commandOutput) {
+                commandOutput.innerHTML = `<div class="list-header">标签列表 (第 ${page}/${totalPages} 页)</div><div class="post-list">`;
+                tags.forEach(tag => {
+                    commandOutput.innerHTML += `
+                    <div class="post-item">
+                        <div class="post-info">
+                            <div class="post-title">${tag.name}</div>
+                            <div class="post-meta">文章数: ${tag.count}</div>
+                        </div>
+                    </div>
+                    `;
+                });
+                commandOutput.innerHTML += `</div>`;
+                commandOutput.innerHTML += generatePagination(page, totalPages);
+                addPaginationEventListeners();
+                scrollToTop();
+            }
+        })
+        .catch(error => {
+            showErrorMessage(`获取标签时发生错误: ${error.message}`);
+            console.error('Error fetching tags:', error);
+        });
+}
+
+function handleCategoriesCommand(args) {
+    let page = 1;
+    if (args.length > 0) {
+        const p = parseInt(args[0]);
+        if (!isNaN(p) && p > 0) page = p;
+    }
+    currentPage = page;
+    showLoading();
+    fetch(`/?vib_api=categories&page=${page}&pageSize=${pageSize}`)
+        .then(resp => resp.json())
+        .then(json => {
+            const terminalOutput = document.getElementById('command-output');
+            const lastLoadingIndex = terminalOutput.innerHTML.lastIndexOf('<div class="loading"></div>');
+            if (lastLoadingIndex !== -1) {
+                terminalOutput.innerHTML = terminalOutput.innerHTML.substring(0, lastLoadingIndex);
+            }
+            const introduction = document.getElementById('introduction');
+            const commandOutput = document.getElementById('command-output');
+            if (introduction) introduction.classList.add('hidden');
+            if (commandOutput) commandOutput.classList.remove('hidden');
+            if (json.code !== 0) {
+                showErrorMessage(`获取分类失败: ${json.message || '未知错误'}`);
+                return;
+            }
+            const data = json.data || {};
+            const categories = data.categories || [];
+            const totalPages = data.totalPages || 0;
+            if (page > totalPages && totalPages > 0) {
+                showErrorMessage(`页码越界。总页数: ${totalPages}`);
+                return;
+            }
+            if (commandOutput) {
+                commandOutput.innerHTML = `<div class="list-header">分类列表 (第 ${page}/${totalPages} 页)</div><div class="post-list">`;
+                categories.forEach(cat => {
+                    commandOutput.innerHTML += `
+                    <div class="post-item">
+                        <div class="post-info">
+                            <div class="post-title" onclick="handleCategoryOpen('${cat.mid}','${cat.name}')">${cat.name}</div>
+                            <div class="post-meta">文章数: ${cat.count}</div>
+                        </div>
+                    </div>
+                    `;
+                });
+                commandOutput.innerHTML += `</div>`;
+                commandOutput.innerHTML += generatePagination(page, totalPages);
+                addPaginationEventListeners();
+                scrollToTop();
+            }
+        })
+        .catch(error => {
+            showErrorMessage(`获取分类时发生错误: ${error.message}`);
+            console.error('Error fetching categories:', error);
+        });
+}
+
+function handleCategoryOpen(mid, name, page = 1) {
+    currentPage = page;
+    showLoading();
+    fetch(`/?vib_api=category_posts&mid=${encodeURIComponent(mid)}&page=${page}&pageSize=${pageSize}`)
+        .then(resp => resp.json())
+        .then(json => {
+            const terminalOutput = document.getElementById('command-output');
+            const lastLoadingIndex = terminalOutput.innerHTML.lastIndexOf('<div class=\"loading\"></div>');
+            if (lastLoadingIndex !== -1) {
+                terminalOutput.innerHTML = terminalOutput.innerHTML.substring(0, lastLoadingIndex);
+            }
+            const introduction = document.getElementById('introduction');
+            const commandOutput = document.getElementById('command-output');
+            if (introduction) introduction.classList.add('hidden');
+            if (commandOutput) commandOutput.classList.remove('hidden');
+            if (json.code !== 0) {
+                showErrorMessage(`获取分类文章失败: ${json.message || '未知错误'}`);
+                return;
+            }
+            const data = json.data || {};
+            const posts = data.posts || [];
+            currentListPosts = posts;
+            totalPosts = data.total || 0;
+            const totalPages = data.totalPages || 0;
+            if (page > totalPages && totalPages > 0) {
+                showErrorMessage(`页码越界。总页数: ${totalPages}`);
+                return;
+            }
+            if (commandOutput) {
+                commandOutput.innerHTML = `<div class=\"list-header\">分类: ${name} 文章列表 (第 ${page}/${totalPages} 页)</div><div class=\"post-list\">`;
+                posts.forEach((post, index) => {
+                    commandOutput.innerHTML += `
+                    <div class=\"post-item\" data-id=\"${post.id}\">\n
+                        <div class=\"post-id\">[${post.id}]</div>
+                        <div class=\"post-info\">
+                            <div class=\"post-title\" onclick=\"handleCatCommand(['${index + 1}'])\">[${index + 1}] ${post.title}</div>
+                            <div class=\"post-meta\">发布时间: ${post.date} | 分类: ${post.category || ''} | 评论数: ${post.comments ?? 0}</div>
+                            <div class=\"post-excerpt\">${post.excerpt || ''}</div>
+                        </div>
+                        <div class=\"post-stats\">
+                            <span class=\"post-views\">👁 ${post.views ?? 0}</span>
+                            <span class=\"post-likes\">👍 ${post.likes ?? 0}</span>
+                        </div>
+                    </div>
+                    `;
+                });
+                commandOutput.innerHTML += `</div>`;
+                commandOutput.innerHTML += generatePagination(page, totalPages);
+                addCategoryPaginationEventListeners(mid, name);
+                scrollToTop();
+            }
+        })
+        .catch(error => {
+            showErrorMessage(`获取分类文章时发生错误: ${error.message}`);
+            console.error('Error fetching category posts:', error);
+        });
+}
+
+function addCategoryPaginationEventListeners(mid, name) {
+    const paginationLinks = document.querySelectorAll('.pagination a');
+    paginationLinks.forEach(link => {
+        link.addEventListener('click', function(event) {
+            event.preventDefault();
+            const page = parseInt(this.getAttribute('data-page'));
+            if (!isNaN(page)) {
+                handleCategoryOpen(mid, name, page);
+            }
+        });
+    });
+}
+
+function handleArchivesCommand() {
+    showLoading();
+    fetch(`/?vib_api=archives`)
+        .then(resp => resp.json())
+        .then(json => {
+            const terminalOutput = document.getElementById('command-output');
+            const lastLoadingIndex = terminalOutput.innerHTML.lastIndexOf('<div class="loading"></div>');
+            if (lastLoadingIndex !== -1) {
+                terminalOutput.innerHTML = terminalOutput.innerHTML.substring(0, lastLoadingIndex);
+            }
+            const introduction = document.getElementById('introduction');
+            const commandOutput = document.getElementById('command-output');
+            if (introduction) introduction.classList.add('hidden');
+            if (commandOutput) commandOutput.classList.remove('hidden');
+            if (json.code !== 0) {
+                showErrorMessage(`获取归档失败: ${json.message || '未知错误'}`);
+                return;
+            }
+            const data = json.data || {};
+            const archives = data.archives || [];
+            let html = '<div class="archive-tree">';
+            html += '<div class="tree-root">归档</div>';
+            archives.forEach(item => {
+                const ym = `${item.year}-${String(item.month).padStart(2, '0')}`;
+                html += `<div class="tree-item"><span class="tree-prefix">├──</span><span class="month-label">${ym}</span> <span class="month-count">(${item.count})</span></div>`;
+            });
+            html += '</div>';
+            commandOutput.innerHTML = html;
+            scrollToTop();
+        })
+        .catch(error => {
+            showErrorMessage(`获取归档时发生错误: ${error.message}`);
+            console.error('Error fetching archives:', error);
+        });
+}
+
+function handleStatsCommand() {
+    showLoading();
+    fetch(`/?vib_api=stats`)
+        .then(resp => resp.json())
+        .then(json => {
+            const terminalOutput = document.getElementById('command-output');
+            const lastLoadingIndex = terminalOutput.innerHTML.lastIndexOf('<div class="loading"></div>');
+            if (lastLoadingIndex !== -1) {
+                terminalOutput.innerHTML = terminalOutput.innerHTML.substring(0, lastLoadingIndex);
+            }
+            const introduction = document.getElementById('introduction');
+            const commandOutput = document.getElementById('command-output');
+            if (introduction) introduction.classList.add('hidden');
+            if (commandOutput) commandOutput.classList.remove('hidden');
+            if (json.code !== 0) {
+                showErrorMessage(`获取统计失败: ${json.message || '未知错误'}`);
+                return;
+            }
+            const data = json.data || {};
+            commandOutput.innerHTML = `
+            <div class="about-container">
+                <div class="about-content">
+                    <h3>站点统计</h3>
+                    <div class="tech-stack">
+                        <div class="tech-item">文章: ${data.postsTotal || 0}</div>
+                        <div class="tech-item">评论: ${data.commentsTotal || 0}</div>
+                        <div class="tech-item">分类: ${data.categoriesTotal || 0}</div>
+                        <div class="tech-item">标签: ${data.tagsTotal || 0}</div>
+                    </div>
+                </div>
+                <div class="about-footer">
+                    <button class="back-button" onclick="handleHomeCommand()" title="返回首页">← 返回首页</button>
+                </div>
+            </div>`;
+            scrollToTop();
+        })
+        .catch(error => {
+            showErrorMessage(`获取统计时发生错误: ${error.message}`);
+            console.error('Error fetching stats:', error);
         });
 }
 
@@ -766,6 +1120,31 @@ function handleHelpCommand() {
                         <td>tree</td>
                         <td>显示博客分类结构</td>
                         <td><code>tree</code></td>
+                    </tr>
+                    <tr>
+                        <td>tags</td>
+                        <td>列出标签，支持分页</td>
+                        <td><code>tags</code> 或 <code>tags 2</code></td>
+                    </tr>
+                    <tr>
+                        <td>categories</td>
+                        <td>列出分类，支持分页</td>
+                        <td><code>categories</code> 或 <code>categories 2</code></td>
+                    </tr>
+                    <tr>
+                        <td>archives</td>
+                        <td>按年月显示归档统计</td>
+                        <td><code>archives</code></td>
+                    </tr>
+                    <tr>
+                        <td>stats</td>
+                        <td>显示站点统计信息</td>
+                        <td><code>stats</code></td>
+                    </tr>
+                    <tr>
+                        <td>search</td>
+                        <td>搜索文章标题</td>
+                        <td><code>search xx</code></td>
                     </tr>
                     <tr>
                         <td>help</td>

@@ -197,6 +197,285 @@ if (isset($_GET['vib_api'])) {
                 ]
             ]);
             exit;
+        } elseif ($action === 'search') {
+            $q = isset($_GET['q']) ? trim($_GET['q']) : '';
+            if ($q === '') {
+                echo json_encode(['code' => 1, 'message' => 'empty query']);
+                exit;
+            }
+
+            $countRow = $db->fetchRow(
+                $db->select('COUNT(*) AS count')
+                   ->from($prefix . 'contents')
+                   ->where('type = ?', 'post')
+                   ->where('status = ?', 'publish')
+                   ->where('created <= ?', time())
+                   ->where('(title LIKE ? OR text LIKE ?)', '%' . $q . '%', '%' . $q . '%')
+            );
+            $total = intval($countRow['count']);
+
+            $rows = $db->fetchAll(
+                $db->select()
+                   ->from($prefix . 'contents')
+                   ->where('type = ?', 'post')
+                   ->where('status = ?', 'publish')
+                   ->where('created <= ?', time())
+                   ->where('(title LIKE ? OR text LIKE ?)', '%' . $q . '%', '%' . $q . '%')
+                   ->order('created', Typecho_Db::SORT_DESC)
+                   ->page($page, $pageSize)
+            );
+
+            $result = [];
+            foreach ($rows as $row) {
+                $cid = intval($row['cid']);
+                $catRow = $db->fetchRow(
+                    $db->select($prefix . 'metas.name')
+                       ->from($prefix . 'relationships')
+                       ->join($prefix . 'metas', $prefix . 'metas.mid = ' . $prefix . 'relationships.mid')
+                       ->where($prefix . 'relationships.cid = ?', $cid)
+                       ->where($prefix . 'metas.type = ?', 'category')
+                       ->limit(1)
+                );
+                $category = $catRow ? $catRow['name'] : '';
+                $plain = trim(strip_tags($row['text']));
+                $excerpt = function_exists('mb_substr') ? mb_substr($plain, 0, 120, 'UTF-8') : substr($plain, 0, 120);
+                $date = date('Y-m-d', $row['created']);
+                $result[] = [
+                    'id' => $cid,
+                    'title' => $row['title'],
+                    'date' => $date,
+                    'category' => $category,
+                    'comments' => intval($row['commentsNum']),
+                    'views' => 0,
+                    'likes' => 0,
+                    'excerpt' => $excerpt
+                ];
+            }
+
+            echo json_encode([
+                'code' => 0,
+                'data' => [
+                    'posts' => $result,
+                    'page' => $page,
+                    'pageSize' => $pageSize,
+                    'total' => $total,
+                    'totalPages' => $pageSize > 0 ? intval(ceil($total / $pageSize)) : 0,
+                    'query' => $q
+                ]
+            ]);
+            exit;
+        } elseif ($action === 'tags') {
+            $countRow = $db->fetchRow(
+                $db->select('COUNT(*) AS count')
+                   ->from($prefix . 'metas')
+                   ->where('type = ?', 'tag')
+            );
+            $total = intval($countRow['count']);
+
+            $rows = $db->fetchAll(
+                $db->select('mid', 'name', 'count')
+                   ->from($prefix . 'metas')
+                   ->where('type = ?', 'tag')
+                   ->order('count', Typecho_Db::SORT_DESC)
+                   ->page($page, $pageSize)
+            );
+
+            $list = [];
+            foreach ($rows as $row) {
+                $list[] = [
+                    'mid' => intval($row['mid']),
+                    'name' => $row['name'],
+                    'count' => intval($row['count'])
+                ];
+            }
+
+            echo json_encode([
+                'code' => 0,
+                'data' => [
+                    'tags' => $list,
+                    'page' => $page,
+                    'pageSize' => $pageSize,
+                    'total' => $total,
+                    'totalPages' => $pageSize > 0 ? intval(ceil($total / $pageSize)) : 0
+                ]
+            ]);
+            exit;
+        } elseif ($action === 'categories') {
+            $countRow = $db->fetchRow(
+                $db->select('COUNT(*) AS count')
+                   ->from($prefix . 'metas')
+                   ->where('type = ?', 'category')
+            );
+            $total = intval($countRow['count']);
+
+            $rows = $db->fetchAll(
+                $db->select('mid', 'name', 'parent', 'count')
+                   ->from($prefix . 'metas')
+                   ->where('type = ?', 'category')
+                   ->order('order', Typecho_Db::SORT_ASC)
+                   ->page($page, $pageSize)
+            );
+
+            $list = [];
+            foreach ($rows as $row) {
+                $list[] = [
+                    'mid' => intval($row['mid']),
+                    'name' => $row['name'],
+                    'parent' => intval($row['parent']),
+                    'count' => intval($row['count'])
+                ];
+            }
+
+            echo json_encode([
+                'code' => 0,
+                'data' => [
+                    'categories' => $list,
+                    'page' => $page,
+                    'pageSize' => $pageSize,
+                    'total' => $total,
+                    'totalPages' => $pageSize > 0 ? intval(ceil($total / $pageSize)) : 0
+                ]
+            ]);
+            exit;
+        } elseif ($action === 'archives') {
+            $rows = $db->fetchAll(
+                $db->select('cid', 'created')
+                   ->from($prefix . 'contents')
+                   ->where('type = ?', 'post')
+                   ->where('status = ?', 'publish')
+                   ->where('created <= ?', time())
+                   ->order('created', Typecho_Db::SORT_DESC)
+            );
+            $map = [];
+            foreach ($rows as $row) {
+                $y = date('Y', $row['created']);
+                $m = date('m', $row['created']);
+                $key = $y . '-' . $m;
+                if (!isset($map[$key])) $map[$key] = 0;
+                $map[$key]++;
+            }
+            krsort($map);
+            $list = [];
+            foreach ($map as $ym => $cnt) {
+                $parts = explode('-', $ym);
+                $list[] = [
+                    'year' => intval($parts[0]),
+                    'month' => intval($parts[1]),
+                    'count' => $cnt
+                ];
+            }
+            echo json_encode(['code' => 0, 'data' => ['archives' => $list]]);
+            exit;
+        } elseif ($action === 'stats') {
+            $posts = $db->fetchRow(
+                $db->select('COUNT(*) AS count')
+                   ->from($prefix . 'contents')
+                   ->where('type = ?', 'post')
+                   ->where('status = ?', 'publish')
+                   ->where('created <= ?', time())
+            );
+            $comments = $db->fetchRow(
+                $db->select('COUNT(*) AS count')
+                   ->from($prefix . 'comments')
+                   ->where('status = ?', 'approved')
+            );
+            $cats = $db->fetchRow(
+                $db->select('COUNT(*) AS count')
+                   ->from($prefix . 'metas')
+                   ->where('type = ?', 'category')
+            );
+            $tags = $db->fetchRow(
+                $db->select('COUNT(*) AS count')
+                   ->from($prefix . 'metas')
+                   ->where('type = ?', 'tag')
+            );
+            echo json_encode([
+                'code' => 0,
+                'data' => [
+                    'postsTotal' => intval($posts['count']),
+                    'commentsTotal' => intval($comments['count']),
+                    'categoriesTotal' => intval($cats['count']),
+                    'tagsTotal' => intval($tags['count'])
+                ]
+            ]);
+            exit;
+        } elseif ($action === 'category_posts') {
+            $mid = isset($_GET['mid']) ? intval($_GET['mid']) : 0;
+            $catName = isset($_GET['name']) ? trim($_GET['name']) : '';
+            if ($mid <= 0 && $catName !== '') {
+                $metaRow = $db->fetchRow(
+                    $db->select('mid')
+                       ->from($prefix . 'metas')
+                       ->where('type = ?', 'category')
+                       ->where('name = ?', $catName)
+                       ->limit(1)
+                );
+                if ($metaRow) {
+                    $mid = intval($metaRow['mid']);
+                }
+            }
+            if ($mid <= 0) {
+                echo json_encode(['code' => 1, 'message' => 'invalid category']);
+                exit;
+            }
+
+            $countRow = $db->fetchRow(
+                $db->select('COUNT(*) AS count')
+                   ->from($prefix . 'relationships')
+                   ->where('mid = ?', $mid)
+            );
+            $total = intval($countRow['count']);
+
+            $rows = $db->fetchAll(
+                $db->select($prefix . 'contents.*')
+                   ->from($prefix . 'relationships')
+                   ->join($prefix . 'contents', $prefix . 'contents.cid = ' . $prefix . 'relationships.cid')
+                   ->where($prefix . 'relationships.mid = ?', $mid)
+                   ->where($prefix . 'contents.type = ?', 'post')
+                   ->where($prefix . 'contents.status = ?', 'publish')
+                   ->where($prefix . 'contents.created <= ?', time())
+                   ->order($prefix . 'contents.created', Typecho_Db::SORT_DESC)
+                   ->page($page, $pageSize)
+            );
+
+            $result = [];
+            foreach ($rows as $row) {
+                $cid = intval($row['cid']);
+                $plain = trim(strip_tags($row['text']));
+                $excerpt = function_exists('mb_substr') ? mb_substr($plain, 0, 120, 'UTF-8') : substr($plain, 0, 120);
+                $date = date('Y-m-d', $row['created']);
+                $catRow = $db->fetchRow(
+                    $db->select($prefix . 'metas.name')
+                       ->from($prefix . 'relationships')
+                       ->join($prefix . 'metas', $prefix . 'metas.mid = ' . $prefix . 'relationships.mid')
+                       ->where($prefix . 'relationships.cid = ?', $cid)
+                       ->where($prefix . 'metas.type = ?', 'category')
+                       ->limit(1)
+                );
+                $category = $catRow ? $catRow['name'] : '';
+                $result[] = [
+                    'id' => $cid,
+                    'title' => $row['title'],
+                    'date' => $date,
+                    'category' => $category,
+                    'comments' => intval($row['commentsNum']),
+                    'views' => 0,
+                    'likes' => 0,
+                    'excerpt' => $excerpt
+                ];
+            }
+
+            echo json_encode([
+                'code' => 0,
+                'data' => [
+                    'posts' => $result,
+                    'page' => $page,
+                    'pageSize' => $pageSize,
+                    'total' => $total,
+                    'totalPages' => $pageSize > 0 ? intval(ceil($total / $pageSize)) : 0
+                ]
+            ]);
+            exit;
         } else {
             echo json_encode(['code' => 1, 'message' => 'unknown action']);
             exit;
