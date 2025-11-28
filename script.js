@@ -1082,6 +1082,18 @@ function handleHelpCommand() {
     if (commandOutput) commandOutput.classList.remove('hidden');
     
     terminalOutput.innerHTML = `
+    <style>
+    .command-table {
+        width: 50%;
+        table-layout: fixed;
+    }
+    .command-table th,
+    .command-table td {
+        width: 33%;
+        text-align: left;
+        padding: 8px;
+    }
+    </style>
     <div class="help-container">
         <div class="help-header">
             <h1>命令帮助</h1>
@@ -1090,6 +1102,11 @@ function handleHelpCommand() {
             <div class="command-help">
                 <h2>基本命令</h2>
                 <table class="command-table">
+                <colgroup>
+                    <col style="width: 20%;">
+                    <col style="width: 50%;">
+                    <col style="width: 30%;">
+                </colgroup>
                     <tr>
                         <th>命令</th>
                         <th>描述</th>
