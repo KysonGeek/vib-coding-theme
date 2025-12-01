@@ -1,4 +1,4 @@
-// Vib Coding Theme - 命令行交互脚本
+// Vibe Coding Theme - 命令行交互脚本
 
 // 全局变量
 let commandHistory = [];
@@ -167,7 +167,7 @@ function startDynamicTextAnimation() {
 function showWelcomeMessage() {
     const terminalOutput = document.getElementById('command-output');
     const welcomeMessage = `
-<div><span class="terminal-prompt">vib-coding@blog:~$ </span><span class="command">Welcome to Vib Coding Theme</span></div>
+<div><span class="terminal-prompt">vibe-coding@blog:~$ </span><span class="command">Welcome to Vibe Coding Theme</span></div>
 <div>这是一个终端风格的Typecho博客主题。</div>
 <div>输入 <span class="command">help</span> 查看可用命令。</div>
     `;
@@ -205,7 +205,7 @@ function handleKeyDown(event) {
                 historyIndex = -1;
                 
                 // 显示命令
-                terminalOutput.innerHTML += `<div><span class="terminal-prompt">vib-coding@blog:~$ </span><span class="command">${command}</span></div>`;
+                terminalOutput.innerHTML += `<div><span class="terminal-prompt">vibe-coding@blog:~$ </span><span class="command">${command}</span></div>`;
                 
                 // 执行命令
                 executeCommand(command);
@@ -415,7 +415,7 @@ function handleLsCommand(args) {
     currentPage = page;
     
     showLoading();
-    fetch(`/?vib_api=posts&page=${page}&pageSize=${pageSize}`)
+    fetch(`/?vibe_api=posts&page=${page}&pageSize=${pageSize}`)
         .then(resp => resp.json())
         .then(json => {
             const terminalOutput = document.getElementById('command-output');
@@ -565,7 +565,7 @@ function handleCatCommand(args) {
         cidForFetch = parseInt(currentListPosts[cidForFetch - 1]?.id);
     }
     showLoading();
-    fetch(`/?vib_api=post&id=${cidForFetch}`)
+    fetch(`/?vibe_api=post&id=${cidForFetch}`)
         .then(resp => resp.json())
         .then(json => {
             const terminalOutput = document.getElementById('command-output');
@@ -633,7 +633,7 @@ function handleSearchCommand(args) {
     currentSearchQuery = q;
     currentPage = page;
     showLoading();
-    fetch(`/?vib_api=search&q=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`)
+    fetch(`/?vibe_api=search&q=${encodeURIComponent(q)}&page=${page}&pageSize=${pageSize}`)
         .then(resp => resp.json())
         .then(json => {
             const terminalOutput = document.getElementById('command-output');
@@ -692,7 +692,7 @@ function handleTagsCommand(args) {
     }
     currentPage = page;
     showLoading();
-    fetch(`/?vib_api=tags&page=${page}&pageSize=${pageSize}`)
+    fetch(`/?vibe_api=tags&page=${page}&pageSize=${pageSize}`)
         .then(resp => resp.json())
         .then(json => {
             const terminalOutput = document.getElementById('command-output');
@@ -747,7 +747,7 @@ function handleCategoriesCommand(args) {
     }
     currentPage = page;
     showLoading();
-    fetch(`/?vib_api=categories&page=${page}&pageSize=${pageSize}`)
+    fetch(`/?vibe_api=categories&page=${page}&pageSize=${pageSize}`)
         .then(resp => resp.json())
         .then(json => {
             const terminalOutput = document.getElementById('command-output');
@@ -797,7 +797,7 @@ function handleCategoriesCommand(args) {
 function handleCategoryOpen(mid, name, page = 1) {
     currentPage = page;
     showLoading();
-    fetch(`/?vib_api=category_posts&mid=${encodeURIComponent(mid)}&page=${page}&pageSize=${pageSize}`)
+    fetch(`/?vibe_api=category_posts&mid=${encodeURIComponent(mid)}&page=${page}&pageSize=${pageSize}`)
         .then(resp => resp.json())
         .then(json => {
             const terminalOutput = document.getElementById('command-output');
@@ -863,7 +863,7 @@ function addCategoryPaginationEventListeners(mid, name) {
 
 function handleArchivesCommand() {
     showLoading();
-    fetch(`/?vib_api=archives`)
+    fetch(`/?vibe_api=archives`)
         .then(resp => resp.json())
         .then(json => {
             const terminalOutput = document.getElementById('command-output');
@@ -899,7 +899,7 @@ function handleArchivesCommand() {
 
 function handleStatsCommand() {
     showLoading();
-    fetch(`/?vib_api=stats`)
+    fetch(`/?vibe_api=stats`)
         .then(resp => resp.json())
         .then(json => {
             const terminalOutput = document.getElementById('command-output');
@@ -1024,7 +1024,7 @@ function handleHomeCommand() {
 // tree命令 - 显示博客结构
 function handleTreeCommand() {
     showLoading();
-    fetch(`/?vib_api=tree`)
+    fetch(`/?vibe_api=tree`)
         .then(resp => resp.json())
         .then(json => {
             const terminalOutput = document.getElementById('command-output');

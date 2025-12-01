@@ -1,19 +1,19 @@
 <?php
 /**
- * Vib Coding Theme - Typecho博客主题
+ * Vibe Coding Theme - Typecho博客主题
  * 
- * 采用vib coding风格，纯黑色背景，底部命令行交互界面
+ * 采用vibe coding风格，纯黑色背景，底部命令行交互界面
  * 
- * @package Vib Coding Theme
+ * @package Vibe Coding Theme
  * @author Kyson
  * @version 1.0.0
- * @link https://blog.qixin.ch
+ * @link https://vibe.qixin.ch
  */
 
 if (!defined('__TYPECHO_ROOT_DIR__')) exit;
-if (isset($_GET['vib_api'])) {
+if (isset($_GET['vibe_api'])) {
     header('Content-Type: application/json; charset=UTF-8');
-    $action = isset($_GET['vib_api']) ? $_GET['vib_api'] : '';
+    $action = isset($_GET['vibe_api']) ? $_GET['vibe_api'] : '';
     $pageSize = isset($_GET['pageSize']) ? max(1, intval($_GET['pageSize'])) : 10;
     $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
 
